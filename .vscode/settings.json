@@ -1,0 +1,8 @@
+{
+    "editor.fontSize": 14,
+    "go.testEnvFile": "${workspaceFolder}/test.env",
+    "editor.semanticHighlighting.enabled": true,
+    "go.delveConfig": {
+        "debugAdapter": "legacy",
+    }
+}
