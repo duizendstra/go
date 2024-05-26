@@ -31,14 +31,14 @@ import (
 )
 
 const (
-	LevelDebug	= iota
-	LevelInfo 
-	LevelNotice
-	LevelWarning
-	LevelError
-	LevelCritical
-	LevelAlert
-	LevelEmergency
+	LevelDebug     = 100
+	LevelInfo      = 200
+	LevelNotice    = 300
+	LevelWarning   = 400
+	LevelError     = 500
+	LevelCritical  = 600
+	LevelAlert     = 700
+	LevelEmergency = 800
 )
 
 type StructuredLogger struct {
@@ -46,18 +46,15 @@ type StructuredLogger struct {
 	TraceID      string `json:"logging.googleapis.com/trace,omitempty"`
 	TraceSampled bool   `json:"logging.googleapis.com/traceSampled,omitempty"`
 	Component    string
-	LogLevel     int
+	logLevel     int
 }
 
-func NewStructuredLogger(projectID, component string, r *http.Request, logLevel ...int) *StructuredLogger {
+func NewStructuredLogger(projectID, component string, r *http.Request) *StructuredLogger {
 	level := LevelInfo // default log level
-	if len(logLevel) > 0 {
-		level = logLevel[0]
-	}
 
 	structuredLogger := &StructuredLogger{
 		Component: component,
-		LogLevel:  level,
+		logLevel:  level,
 	}
 
 	if r != nil {
@@ -121,9 +118,9 @@ func (cl *StructuredLogger) logWithEntry(entry logEntry) {
 	entry.TraceID = cl.TraceID
 	entry.SpanID = cl.SpanID
 	entry.TraceSampled = cl.TraceSampled
-    
+
 	if entry.Severity == "ERROR" || entry.Severity == "CRITICAL" || entry.Severity == "ALERT" || entry.Severity == "EMERGENCY" {
-		entry.SourceLocation = getSourceLocation(3) 
+		entry.SourceLocation = getSourceLocation(3)
 	}
 
 	logEntryJSON, err := json.Marshal(entry)
@@ -135,16 +132,30 @@ func (cl *StructuredLogger) logWithEntry(entry logEntry) {
 	log.Printf("%s", string(logEntryJSON))
 }
 
-func (cl *StructuredLogger) shouldLog(level int) bool {
-	return level >= cl.LogLevel
-}
-
 func (cl *StructuredLogger) Log(severity int, message string) {
-	if cl.shouldLog(severity) {
-		cl.logWithEntry(logEntry{
+	if severity >= cl.logLevel {
+		entry := logEntry{
 			Severity: mapSeverity(severity),
 			Message:  message,
-		})
+		}
+
+		if severity >= LevelError {
+			entry.SourceLocation = getSourceLocation(3)
+		}
+
+		entry.Timestamp = time.Now().Format(time.RFC3339)
+		entry.Component = cl.Component
+		entry.TraceID = cl.TraceID
+		entry.SpanID = cl.SpanID
+		entry.TraceSampled = cl.TraceSampled
+
+		logEntryJSON, err := json.Marshal(entry)
+		if err != nil {
+			log.Printf(`{"severity": "ERROR", "message": "Error marshaling log entry: %v"}`, err)
+			return
+		}
+
+		log.Printf("%s", string(logEntryJSON))
 	}
 }
 
@@ -180,8 +191,33 @@ func (cl *StructuredLogger) LogEmergency(message string) {
 	cl.Log(LevelEmergency, message)
 }
 
+func (cl *StructuredLogger) LogLevel(level string) {
+	switch level {
+	case "DEBUG":
+		cl.logLevel = LevelDebug
+	case "INFO":
+		cl.logLevel = LevelInfo
+	case "NOTICE":
+		cl.logLevel = LevelNotice
+	case "WARNING":
+		cl.logLevel = LevelWarning
+	case "ERROR":
+		cl.logLevel = LevelError
+	case "CRITICAL":
+		cl.logLevel = LevelCritical
+	case "ALERT":
+		cl.logLevel = LevelAlert
+	case "EMERGENCY":
+		cl.logLevel = LevelEmergency
+	default:
+		cl.logLevel = LevelInfo // default log level
+	}
+}
+
 func mapSeverity(level int) string {
 	switch level {
+	case LevelDebug:
+		return "DEBUG"
 	case LevelInfo:
 		return "INFO"
 	case LevelNotice:
