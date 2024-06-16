@@ -12,6 +12,8 @@ github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGX
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/duizendstra/go/errors v0.0.3 h1:O98HgGyaFaxMEUWYYAGcqDtGfB2YYRsdoB1LVcdCVG0=
+github.com/duizendstra/go/errors v0.0.3/go.mod h1:C9mbLQywVkeLhViy0tlVcRf+YHDZDGHhKN5Hv3aYuq8=
 github.com/duizendstra/go/logging v0.0.2 h1:INh0OK29aL1NZ9kvGeQcDhsTzSqxBCvQ/wM8jO65s5Y=
 github.com/duizendstra/go/logging v0.0.2/go.mod h1:B1ym6Y4pm6diF/ArHxD0F68Zo5MjJLKT+ps5mES7aQQ=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=

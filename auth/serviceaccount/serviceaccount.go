@@ -1,22 +1,3 @@
-// Copyright 2024 Jasper Duizendstra
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
 
 package serviceaccount
 
@@ -29,6 +10,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/duizendstra/go/errors"
 	"github.com/duizendstra/go/logging/cloudrun"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/iam/v1"
@@ -55,52 +37,26 @@ func (c *DefaultIAMServiceClient) SignJwt(ctx context.Context, name string, payl
 func GenerateHTTPClient(ctx context.Context, logger *structured.StructuredLogger, iamClient IAMServiceClient, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
 	jwtAssertion, err := createJWTAssertion(targetServiceAccount, userEmail, scopes)
 	if err != nil {
-		logger.LogError(fmt.Sprintf("Error creating JWT assertion: %v", err))
-		return nil, err
+		return nil, fmt.Errorf("error creating JWT assertion: %w", err)
 	}
 
 	name := "projects/-/serviceAccounts/" + targetServiceAccount
 	signJwtResponse, err := iamClient.SignJwt(ctx, name, jwtAssertion)
 	if err != nil {
-		logger.LogError(fmt.Sprintf("Error signing JWT: %v", err))
-		return nil, err
+		return nil, fmt.Errorf("error signing JWT: %w", err)
 	}
 
 	tokenUrl := "https://oauth2.googleapis.com/token"
 	if len(tokenURL) > 0 {
 		tokenUrl = tokenURL[0]
 	}
-	
-	data := url.Values{
-		"grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
-		"assertion":  {signJwtResponse.SignedJwt},
-	}
-	resp, err := http.PostForm(tokenUrl, data)
+
+	accessToken, err := getAccessToken(tokenUrl, signJwtResponse.SignedJwt)
 	if err != nil {
-		logger.LogError(fmt.Sprintf("Error posting to token endpoint: %v", err))
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	responseBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logger.LogError(fmt.Sprintf("Error reading response body: %v", err))
 		return nil, err
 	}
 
-	var tokenResponse struct {
-		AccessToken string `json:"access_token"`
-	}
-	if err := json.Unmarshal(responseBody, &tokenResponse); err != nil {
-		logger.LogError(fmt.Sprintf("Error unmarshaling token response: %v", err))
-		return nil, err
-	}
-
-	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: tokenResponse.AccessToken})
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: accessToken})
 	return oauth2.NewClient(ctx, tokenSource), nil
 }
 
@@ -110,11 +66,43 @@ func createJWTAssertion(targetServiceAccount, userEmail, scopes string) (string,
 		return "", fmt.Errorf("service account, user email, and scopes must all be provided")
 	}
 
+	now := time.Now().Unix()
 	return fmt.Sprintf(`{
-        "iss": "%s",
-        "sub": "%s",
-        "scope": "%s",
-        "aud": "https://oauth2.googleapis.com/token",
-        "iat": %d
-    }`, targetServiceAccount, userEmail, scopes, time.Now().Unix()), nil
+		"iss": "%s",
+		"sub": "%s",
+		"scope": "%s",
+		"aud": "https://oauth2.googleapis.com/token",
+		"iat": %d,
+		"exp": %d
+	}`, targetServiceAccount, userEmail, scopes, now, now+3600), nil
+}
+
+// getAccessToken exchanges the signed JWT for an access token.
+func getAccessToken(tokenUrl, signedJwt string) (string, error) {
+	data := url.Values{
+		"grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
+		"assertion":  {signedJwt},
+	}
+	resp, err := http.PostForm(tokenUrl, data)
+	if err != nil {
+		return "", fmt.Errorf("error posting to token endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", &errors.APIError{
+			StatusCode: resp.StatusCode,
+			Body:       string(body),
+		}
+	}
+
+	var tokenResponse struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return "", fmt.Errorf("error unmarshaling token response: %w", err)
+	}
+
+	return tokenResponse.AccessToken, nil
 }

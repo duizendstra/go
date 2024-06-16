@@ -3,6 +3,7 @@ module github.com/duizendstra/go/auth
 go 1.22.4
 
 require (
+	github.com/duizendstra/go/errors v0.0.3
 	github.com/duizendstra/go/logging v0.0.2
 	golang.org/x/oauth2 v0.21.0
 	google.golang.org/api v0.184.0
