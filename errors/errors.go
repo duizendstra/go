@@ -26,8 +26,10 @@ import (
 
 // APIError represents an error response from an API request.
 type APIError struct {
-	StatusCode int
-	Body       string
+	StatusCode   int
+	Body         string
+	ErrorCode    string
+	ErrorMessage string
 }
 
 func (e *APIError) Error() string {
