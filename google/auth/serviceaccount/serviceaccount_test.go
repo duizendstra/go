@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package serviceaccount
+package googleserviceaccount
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/duizendstra/go/logging/cloudrun"
+	"github.com/duizendstra/go/google/logging/cloudrun"
 	"google.golang.org/api/iam/v1"
 )
 
@@ -38,7 +38,7 @@ func (m *MockIAMServiceClient) SignJwt(ctx context.Context, name string, payload
 	return &iam.SignJwtResponse{SignedJwt: "mocked_signed_jwt"}, nil
 }
 
-func TestGenerateHTTPClient(t *testing.T) {
+func TestGenerateGoogleHTTPClient(t *testing.T) {
 	logger := structured.NewStructuredLogger("test-project", "test-component", nil)
 	mockIAMClient := &MockIAMServiceClient{}
 
@@ -105,10 +105,10 @@ func TestGenerateHTTPClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			client, err := GenerateHTTPClient(ctx, logger, mockIAMClient, tt.targetServiceAcc, tt.userEmail, tt.scopes, tt.tokenURL)
+			client, err := GenerateGoogleHTTPClient(ctx, logger, mockIAMClient, tt.targetServiceAcc, tt.userEmail, tt.scopes, tt.tokenURL)
 			if err != nil {
 				if tt.expectedErr == "" {
-					t.Fatalf("GenerateHTTPClient returned unexpected error: %v", err)
+					t.Fatalf("GenerateGoogleHTTPClient returned unexpected error: %v", err)
 				}
 				if err.Error() != tt.expectedErr {
 					t.Fatalf("Expected error: %v, got: %v", tt.expectedErr, err.Error())

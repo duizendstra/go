@@ -1,5 +1,5 @@
 
-package serviceaccount
+package googleserviceaccount
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/duizendstra/go/errors"
-	"github.com/duizendstra/go/logging/cloudrun"
+	"github.com/duizendstra/go/google/errors"
+	"github.com/duizendstra/go/google/logging"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/option"
@@ -22,10 +22,10 @@ type IAMServiceClient interface {
 	SignJwt(ctx context.Context, name string, payload string) (*iam.SignJwtResponse, error)
 }
 
-// DefaultIAMServiceClient is an implementation of IAMServiceClient that talks to the real IAM service.
-type DefaultIAMServiceClient struct{}
+// GoogleIAMServiceClient is an implementation of IAMServiceClient that talks to the real IAM service.
+type GoogleIAMServiceClient struct{}
 
-func (c *DefaultIAMServiceClient) SignJwt(ctx context.Context, name string, payload string) (*iam.SignJwtResponse, error) {
+func (c *GoogleIAMServiceClient) SignJwt(ctx context.Context, name string, payload string) (*iam.SignJwtResponse, error) {
 	iamService, err := iam.NewService(ctx, option.WithScopes(iam.CloudPlatformScope))
 	if err != nil {
 		return nil, err
@@ -33,8 +33,8 @@ func (c *DefaultIAMServiceClient) SignJwt(ctx context.Context, name string, payl
 	return iamService.Projects.ServiceAccounts.SignJwt(name, &iam.SignJwtRequest{Payload: payload}).Context(ctx).Do()
 }
 
-// GenerateHTTPClient creates an authenticated HTTP client for GCP services.
-func GenerateHTTPClient(ctx context.Context, logger *structured.StructuredLogger, iamClient IAMServiceClient, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
+// GenerateGoogleHTTPClient creates an authenticated HTTP client for GCP services.
+func GenerateGoogleHTTPClient(ctx context.Context, logger *structured.StructuredLogger, iamClient IAMServiceClient, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
 	jwtAssertion, err := createJWTAssertion(targetServiceAccount, userEmail, scopes)
 	if err != nil {
 		return nil, fmt.Errorf("error creating JWT assertion: %w", err)
@@ -91,7 +91,7 @@ func getAccessToken(tokenUrl, signedJwt string) (string, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", &errors.APIError{
+		return "", &errors.GoogleAPIError{
 			StatusCode: resp.StatusCode,
 			Body:       string(body),
 		}
