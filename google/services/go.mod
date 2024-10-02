@@ -3,9 +3,7 @@ module github.com/duizendstra/go/google/services
 go 1.23.2
 
 require (
-	github.com/duizendstra/go/auth v0.0.5
-	github.com/duizendstra/go/errors v0.0.6
-	github.com/duizendstra/go/logging v0.0.2
+
 	golang.org/x/oauth2 v0.23.0
 )
 

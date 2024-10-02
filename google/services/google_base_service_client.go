@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/duizendstra/go/auth/serviceaccount"
-	"github.com/duizendstra/go/errors"
-	"github.com/duizendstra/go/logging/cloudrun"
+	"github.com/duizendstra/go/google/auth/serviceaccount"
+	"github.com/duizendstra/go/google/errors"
+	"github.com/duizendstra/go/google/logging"
 	"golang.org/x/oauth2"
 )
 
