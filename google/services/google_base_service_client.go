@@ -11,7 +11,7 @@ import (
 
 	"github.com/duizendstra/go/google/auth/serviceaccount"
 	"github.com/duizendstra/go/google/errors"
-	"github.com/duizendstra/go/google/logging"
+	"github.com/duizendstra/go/google/structuredlogger"
 	"golang.org/x/oauth2"
 )
 
@@ -27,11 +27,11 @@ func (e *APIError) Error() string {
 type GoogleBaseServiceClient struct {
 	httpClient   *http.Client
 	baseEndpoint string
-	logger       *structured.StructuredLogger
+	logger       *structuredlogger.StructuredLogger
 }
 
 // NewGoogleBaseServiceClient creates a new instance of GoogleBaseServiceClient
-func NewGoogleBaseServiceClient(ctx context.Context, logger *structured.StructuredLogger, targetServiceAccount, userEmail, scopes, baseEndpoint string) (*GoogleBaseServiceClient, error) {
+func NewGoogleBaseServiceClient(ctx context.Context, logger *structuredlogger.StructuredLogger, targetServiceAccount, userEmail, scopes, baseEndpoint string) (*GoogleBaseServiceClient, error) {
 	httpClient, err := serviceaccount.GenerateGoogleHTTPClient(ctx, logger, &serviceaccount.GoogleIAMServiceClient{}, targetServiceAccount, userEmail, scopes)
 	if err != nil {
         if strings.Contains(err.Error(), "Gaia id not found for email") {

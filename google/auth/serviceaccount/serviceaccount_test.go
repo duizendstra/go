@@ -28,7 +28,7 @@ import (
 	"testing"
 
 	"google.golang.org/api/iam/v1"
-    logger "github.com/duizendstra/go/google/logging"
+    structuredlogger "github.com/duizendstra/go/google/structuredlogger"
 )
 
 // MockIAMServiceClient is a mock implementation of IAMServiceClient
@@ -43,7 +43,7 @@ func TestGenerateGoogleHTTPClient(t *testing.T) {
     mockIAMClient := &MockIAMServiceClient{}
 
     // Create a valid logger instance instead of passing nil
-    logger := logger.NewStructuredLogger("test-project", "test-component", nil, nil)
+    logger := structuredlogger.NewStructuredLogger("test-project", "test-component", nil, nil)
 
     // Access token to be used by the GET request
     expectedAccessToken := "mocked_access_token"

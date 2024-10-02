@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"testing"
 
-	logger "github.com/duizendstra/go/google/logging"
+	"github.com/duizendstra/go/google/structuredlogger"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 )
@@ -24,7 +24,7 @@ func (mts *MockTokenSource) Token() (*oauth2.Token, error) {
 }
 
 func TestMakeRequest(t *testing.T) {
-	logger := logger.NewStructuredLogger("test-project", "test-component", nil, nil)
+	logger := structuredlogger.NewStructuredLogger("test-project", "test-component", nil, nil)
 	client := &GoogleBaseServiceClient{
 		httpClient: &http.Client{
 			Transport: &oauth2.Transport{
@@ -63,7 +63,7 @@ func TestMakeRequest(t *testing.T) {
 }
 
 func TestMakePostRequest(t *testing.T) {
-	logger := logger.NewStructuredLogger("test-project", "test-component", nil, nil)
+	logger := structuredlogger.NewStructuredLogger("test-project", "test-component", nil, nil)
 	client := &GoogleBaseServiceClient{
 		httpClient: &http.Client{
 			Transport: &oauth2.Transport{

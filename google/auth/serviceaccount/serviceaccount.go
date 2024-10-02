@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/duizendstra/go/google/errors"
-	"github.com/duizendstra/go/google/logging"
+	"github.com/duizendstra/go/google/structuredlogger"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/option"
@@ -63,7 +63,7 @@ type JWTClaims struct {
 }
 
 // GenerateGoogleHTTPClient creates an authenticated HTTP client for GCP services.
-func GenerateGoogleHTTPClient(ctx context.Context, logger *structured.StructuredLogger, iamClient IAMServiceClient, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
+func GenerateGoogleHTTPClient(ctx context.Context, logger *structuredlogger.StructuredLogger, iamClient IAMServiceClient, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
 	jwtAssertion, err := createJWTAssertion(targetServiceAccount, userEmail, scopes)
 	if err != nil {
 		logger.LogError(ctx, "Error creating JWT assertion", "error", err)
@@ -117,7 +117,7 @@ func createJWTAssertion(targetServiceAccount, userEmail, scopes string) (string,
 }
 
 // getAccessToken exchanges the signed JWT for an access token.
-func getAccessToken(logger *structured.StructuredLogger, tokenUrl, signedJwt string) (string, error) {
+func getAccessToken(logger *structuredlogger.StructuredLogger, tokenUrl, signedJwt string) (string, error) {
 	data := url.Values{
 		"grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
 		"assertion":  {signedJwt},  // Ensure the signed JWT is being passed here
