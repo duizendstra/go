@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/duizendstra/go/google/auth/serviceaccount"
-	"github.com/duizendstra/go/google/apierrors"
+	apierrors "github.com/duizendstra/go/google/apierrors"
 	"github.com/duizendstra/go/google/structuredlogger"
 	"golang.org/x/oauth2"
 )

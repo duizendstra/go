@@ -28,7 +28,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/duizendstra/go/google/apierrors"
+	apierrors "github.com/duizendstra/go/google/apierrors"
 	"github.com/duizendstra/go/google/structuredlogger"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/iam/v1"
