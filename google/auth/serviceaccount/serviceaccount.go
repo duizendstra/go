@@ -28,7 +28,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/duizendstra/go/google/errors"
+	"github.com/duizendstra/go/google/googleapierrors"
 	"github.com/duizendstra/go/google/structuredlogger"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/iam/v1"
@@ -133,7 +133,7 @@ func getAccessToken(logger *structuredlogger.StructuredLogger, tokenUrl, signedJ
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		logger.LogError(context.Background(), "Non-OK response from token URL", "status", resp.StatusCode, "body", string(body))
-		return "", &errors.GoogleAPIError{
+		return "", &googleapierrors.GoogleAPIError{
 			StatusCode: resp.StatusCode,
 			Body:       string(body),
 		}

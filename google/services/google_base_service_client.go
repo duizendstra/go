@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/duizendstra/go/google/auth/serviceaccount"
-	"github.com/duizendstra/go/google/errors"
+	"github.com/duizendstra/go/google/googleapierrors"
 	"github.com/duizendstra/go/google/structuredlogger"
 	"golang.org/x/oauth2"
 )
@@ -35,7 +35,7 @@ func NewGoogleBaseServiceClient(ctx context.Context, logger *structuredlogger.St
 	httpClient, err := serviceaccount.GenerateGoogleHTTPClient(ctx, logger, &serviceaccount.GoogleIAMServiceClient{}, targetServiceAccount, userEmail, scopes)
 	if err != nil {
         if strings.Contains(err.Error(), "Gaia id not found for email") {
-            apiErr := &errors.GoogleAPIError{
+            apiErr := &googleapierrors.GoogleAPIError{
                 StatusCode:   http.StatusNotFound,
                 Body:         fmt.Sprintf("Gaia ID not found for email %s: %v", targetServiceAccount, err),
                 ErrorCode:    "1000",
@@ -45,7 +45,7 @@ func NewGoogleBaseServiceClient(ctx context.Context, logger *structuredlogger.St
             return nil, apiErr
         }
         
-        apiErr := &errors.GoogleAPIError{
+        apiErr := &googleapierrors.GoogleAPIError{
             StatusCode: http.StatusInternalServerError,
             Body:       fmt.Sprintf("Error generating HTTP client: %v", err),
         }
