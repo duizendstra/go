@@ -1,4 +1,4 @@
-module github.com/duizendstra/go/errors
+module github.com/duizendstra/go/google/errors
 
 go 1.23.2
 
