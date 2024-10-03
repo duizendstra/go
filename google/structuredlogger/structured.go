@@ -201,6 +201,14 @@ func (sl *StructuredLogger) SetLogLevel(level string) {
 	handler := slog.NewJSONHandler(sl.writer, &slog.HandlerOptions{
 		Level:     slogLevel,
 		AddSource: false,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.MessageKey {
+				a.Key = "message"
+			} else if a.Key == slog.SourceKey {
+				a.Key = "logging.googleapis.com/sourceLocation"
+			}
+			return a
+		},
 	})
 	sl.logger = slog.New(handler)
 }
