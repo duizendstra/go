@@ -9,7 +9,7 @@ import (
 	"cloud.google.com/go/cloudtasks/apiv2/cloudtaskspb"
 )
 
-func enqueueTask(ctx context.Context, body *interface{}, url string, queueName string, taskSuffix string, serviceAccountEmail string) error {
+func EnqueueTask(ctx context.Context, body *interface{}, url string, queueName string, taskSuffix string, serviceAccountEmail string) error {
 	taskClient, err := cloudtasks.NewClient(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %v", err)
