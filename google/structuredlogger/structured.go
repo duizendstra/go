@@ -49,6 +49,14 @@ func NewStructuredLogger(projectID, component string, r *http.Request, writer io
 
 	handler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
 		AddSource: false, // We'll add source manually for error levels
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.MessageKey {
+				a.Key = "message"
+			} else if a.Key == slog.SourceKey {
+				a.Key = "logging.googleapis.com/sourceLocation"
+			}
+			return a
+		},
 	})
 
 	logger := slog.New(handler)
