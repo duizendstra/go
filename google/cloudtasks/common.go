@@ -9,7 +9,7 @@ import (
 	"cloud.google.com/go/cloudtasks/apiv2/cloudtaskspb"
 )
 
-func EnqueueTask(ctx context.Context, body interface{}, url string, queueName string, taskSuffix string, serviceAccountEmail string) error {
+func EnqueueTask(ctx context.Context, body interface{}, url string, queueName string, taskName string, serviceAccountEmail string) error {
 	taskClient, err := cloudtasks.NewClient(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %v", err)
@@ -21,7 +21,7 @@ func EnqueueTask(ctx context.Context, body interface{}, url string, queueName st
 		return fmt.Errorf("failed to serialize request: %v", err)
 	}
 
-	taskFullName := fmt.Sprintf("%s/tasks/%s-%04d", queueName, taskSuffix)
+	taskFullName := fmt.Sprintf("%s/tasks/%s", queueName, taskName)
 
 	httpRequest := &cloudtaskspb.HttpRequest{
 		HttpMethod: cloudtaskspb.HttpMethod_POST,
