@@ -61,7 +61,7 @@ func NewGoogleBaseServiceClient(ctx context.Context, logger *structuredlogger.St
 }
 
 // makeRequest executes an HTTP GET request to the specified endpoint with given parameters
-func (c *GoogleBaseServiceClient) makeRequest(ctx context.Context, endpoint string, params url.Values) ([]byte, error) {
+func (c *GoogleBaseServiceClient) MakeRequest(ctx context.Context, endpoint string, params url.Values) ([]byte, error) {
 	reqURL := fmt.Sprintf("%s/%s?%s", c.baseEndpoint, endpoint, params.Encode())
 
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
@@ -95,7 +95,7 @@ func (c *GoogleBaseServiceClient) makeRequest(ctx context.Context, endpoint stri
 }
 
 // makePostRequest executes an HTTP POST request to the specified endpoint with given headers and body.
-func (c *GoogleBaseServiceClient) makePostRequest(ctx context.Context, endpoint string, headers map[string]string, body []byte) ([]byte, error) {
+func (c *GoogleBaseServiceClient) MakePostRequest(ctx context.Context, endpoint string, headers map[string]string, body []byte) ([]byte, error) {
 	reqURL := fmt.Sprintf("%s/%s", c.baseEndpoint, endpoint)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", reqURL, bytes.NewReader(body))

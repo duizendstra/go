@@ -52,7 +52,7 @@ func TestMakeRequest(t *testing.T) {
 	params.Add("key", "value")
 
 	// Execute the GET request
-	response, err := client.makeRequest(context.Background(), "test-endpoint", params)
+	response, err := client.MakeRequest(context.Background(), "test-endpoint", params)
 	assert.NoError(t, err)
 
 	// Validate the response
@@ -101,7 +101,7 @@ func TestMakePostRequest(t *testing.T) {
 	}
 
 	// Execute the POST request
-	response, err := client.makePostRequest(context.Background(), "test-post-endpoint", headers, bodyBytes)
+	response, err := client.MakePostRequest(context.Background(), "test-post-endpoint", headers, bodyBytes)
 	assert.NoError(t, err)
 
 	// Validate the response
