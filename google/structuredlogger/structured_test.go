@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package structuredlogger
+package structuredlogger_test
 
 import (
 	"bytes"
@@ -27,6 +27,7 @@ import (
 	"log/slog"
 	"net/http/httptest"
 	"testing"
+	"github.com/duizendstra/go/google/structuredlogger"
 )
 
 func TestNewStructuredLogger(t *testing.T) {
@@ -34,12 +35,12 @@ func TestNewStructuredLogger(t *testing.T) {
 	component := "test-component"
 
 	// Test case 1: http.Request is nil
-	logger := NewStructuredLogger(projectID, component, nil, nil)
-	if logger.traceID != "" || logger.spanID != "" || logger.traceSampled {
-		t.Errorf("Expected empty trace details for nil request, got TraceID: %s, SpanID: %s, TraceSampled: %v", logger.traceID, logger.spanID, logger.traceSampled)
+	logger := structuredlogger.NewStructuredLogger(projectID, component, nil, nil)
+	if logger.GetTraceID() != "" || logger.GetSpanID() != "" || logger.IsTraceSampled() {
+		t.Errorf("Expected empty trace details for nil request, got TraceID: %s, SpanID: %s, TraceSampled: %v", logger.GetTraceID(), logger.GetSpanID(), logger.IsTraceSampled())
 	}
-	if logger.component != component {
-		t.Errorf("Expected component %s, got %s", component, logger.component)
+	if logger.GetComponent() != component {
+		t.Errorf("Expected component %s, got %s", component, logger.GetComponent())
 	}
 
 	// Test case 2: http.Request with valid X-Cloud-Trace-Context header
@@ -47,22 +48,22 @@ func TestNewStructuredLogger(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set("X-Cloud-Trace-Context", traceHeader)
 
-	logger = NewStructuredLogger(projectID, component, req, nil)
+	logger = structuredlogger.NewStructuredLogger(projectID, component, req, nil)
 	expectedTraceID := "projects/test-project/traces/105445aa7843bc8bf206b120001000"
 	expectedSpanID := "1"
 	expectedTraceSampled := true
 
-	if logger.traceID != expectedTraceID {
-		t.Errorf("Expected TraceID %s, got %s", expectedTraceID, logger.traceID)
+	if logger.GetTraceID() != expectedTraceID {
+		t.Errorf("Expected TraceID %s, got %s", expectedTraceID, logger.GetTraceID())
 	}
-	if logger.spanID != expectedSpanID {
-		t.Errorf("Expected SpanID %s, got %s", expectedSpanID, logger.spanID)
+	if logger.GetSpanID() != expectedSpanID {
+		t.Errorf("Expected SpanID %s, got %s", expectedSpanID, logger.GetSpanID())
 	}
-	if logger.traceSampled != expectedTraceSampled {
-		t.Errorf("Expected TraceSampled %v, got %v", expectedTraceSampled, logger.traceSampled)
+	if logger.IsTraceSampled() != expectedTraceSampled {
+		t.Errorf("Expected TraceSampled %v, got %v", expectedTraceSampled, logger.IsTraceSampled())
 	}
-	if logger.component != component {
-		t.Errorf("Expected component %s, got %s", component, logger.component)
+	if logger.GetComponent() != component {
+		t.Errorf("Expected component %s, got %s", component, logger.GetComponent())
 	}
 
 	// Test case 3: http.Request with invalid X-Cloud-Trace-Context header
@@ -70,12 +71,12 @@ func TestNewStructuredLogger(t *testing.T) {
 	req = httptest.NewRequest("GET", "http://example.com", nil)
 	req.Header.Set("X-Cloud-Trace-Context", traceHeader)
 
-	logger = NewStructuredLogger(projectID, component, req, nil)
-	if logger.traceID != "" || logger.spanID != "" || logger.traceSampled {
-		t.Errorf("Expected empty trace details for invalid header, got TraceID: %s, SpanID: %s, TraceSampled: %v", logger.traceID, logger.spanID, logger.traceSampled)
+	logger = structuredlogger.NewStructuredLogger(projectID, component, req, nil)
+	if logger.GetTraceID() != "" || logger.GetSpanID() != "" || logger.IsTraceSampled() {
+		t.Errorf("Expected empty trace details for invalid header, got TraceID: %s, SpanID: %s, TraceSampled: %v", logger.GetTraceID(), logger.GetSpanID(), logger.IsTraceSampled())
 	}
-	if logger.component != component {
-		t.Errorf("Expected component %s, got %s", component, logger.component)
+	if logger.GetComponent() != component {
+		t.Errorf("Expected component %s, got %s", component, logger.GetComponent())
 	}
 }
 
@@ -88,10 +89,8 @@ func TestLoggingMethods(t *testing.T) {
 	// Capture the output
 	var buf bytes.Buffer
 
-	sl := NewStructuredLogger("", component, nil, &buf)
-	sl.traceID = traceID
-	sl.spanID = spanID
-	sl.traceSampled = traceSampled
+	sl := structuredlogger.NewStructuredLogger("", component, nil, &buf)
+	sl.SetTrace(traceID, spanID, traceSampled)
 
 	// Set log level to DEBUG to ensure all messages are captured
 	sl.SetLogLevel("DEBUG")
@@ -106,12 +105,12 @@ func TestLoggingMethods(t *testing.T) {
 	}{
 		{"LogDebug", sl.LogDebug, slog.LevelDebug},
 		{"LogInfo", sl.LogInfo, slog.LevelInfo},
-		{"LogNotice", sl.LogNotice, LevelNotice},
+		{"LogNotice", sl.LogNotice, structuredlogger.LevelNotice},
 		{"LogWarning", sl.LogWarning, slog.LevelWarn},
 		{"LogError", sl.LogError, slog.LevelError},
-		{"LogCritical", sl.LogCritical, LevelCritical},
-		{"LogAlert", sl.LogAlert, LevelAlert},
-		{"LogEmergency", sl.LogEmergency, LevelEmergency},
+		{"LogCritical", sl.LogCritical, structuredlogger.LevelCritical},
+		{"LogAlert", sl.LogAlert, structuredlogger.LevelAlert},
+		{"LogEmergency", sl.LogEmergency, structuredlogger.LevelEmergency},
 	}
 
 	for _, lm := range logMethods {
@@ -126,8 +125,8 @@ func TestLoggingMethods(t *testing.T) {
 		}
 
 		// Check the basic fields
-		if loggedEntry["msg"] != msg {
-			t.Errorf("Expected message '%s', got '%s'", msg, loggedEntry["msg"])
+		if loggedEntry["message"] != msg {
+			t.Errorf("Expected message '%s', got '%s'", msg, loggedEntry["message"])
 		}
 		if loggedEntry["component"] != component {
 			t.Errorf("Expected component '%s', got '%s'", component, loggedEntry["component"])
@@ -176,7 +175,7 @@ func TestSetLogLevel(t *testing.T) {
 	// Capture the output
 	var buf bytes.Buffer
 
-	sl := NewStructuredLogger("", component, nil, &buf)
+	sl := structuredlogger.NewStructuredLogger("", component, nil, &buf)
 
 	ctx := context.Background()
 
@@ -215,7 +214,7 @@ func TestAdditionalAttributes(t *testing.T) {
 	// Capture the output
 	var buf bytes.Buffer
 
-	sl := NewStructuredLogger("", component, nil, &buf)
+	sl := structuredlogger.NewStructuredLogger("", component, nil, &buf)
 
 	// Set log level to DEBUG to capture all messages
 	sl.SetLogLevel("DEBUG")

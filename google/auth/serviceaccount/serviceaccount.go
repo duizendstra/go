@@ -26,6 +26,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	apierrors "github.com/duizendstra/go/google/apierrors"
@@ -63,7 +64,12 @@ type JWTClaims struct {
 }
 
 // GenerateGoogleHTTPClient creates an authenticated HTTP client for GCP services.
-func GenerateGoogleHTTPClient(ctx context.Context, logger *structuredlogger.StructuredLogger, iamClient IAMServiceClient, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
+func GenerateGoogleHTTPClient(ctx context.Context, logger *structuredlogger.StructuredLogger, iamClient IAMServiceClient, tokenCache *TokenCache, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
+	// Check the token cache first
+	if cachedToken, found := tokenCache.GetToken(userEmail, strings.Split(scopes, ",")); found {
+		return oauth2.NewClient(ctx, oauth2.StaticTokenSource(cachedToken)), nil
+	}
+
 	jwtAssertion, err := createJWTAssertion(targetServiceAccount, userEmail, scopes)
 	if err != nil {
 		logger.LogError(ctx, "Error creating JWT assertion", "error", err)
@@ -76,19 +82,23 @@ func GenerateGoogleHTTPClient(ctx context.Context, logger *structuredlogger.Stru
 		logger.LogError(ctx, "Error signing JWT", "error", err)
 		return nil, fmt.Errorf("error signing JWT: %w", err)
 	}
-	
+
 	tokenUrl := "https://oauth2.googleapis.com/token"
 	if len(tokenURL) > 0 {
 		tokenUrl = tokenURL[0]
 	}
-	
+
 	accessToken, err := getAccessToken(logger, tokenUrl, signJwtResponse.SignedJwt)
 	if err != nil {
 		logger.LogError(ctx, "Error getting access token", "error", err)
 		return nil, err
 	}
 
-	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: accessToken})
+	token := &oauth2.Token{AccessToken: accessToken}
+	// Cache the new token
+	tokenCache.SetToken(userEmail, strings.Split(scopes, ","), token)
+
+	tokenSource := oauth2.StaticTokenSource(token)
 	return oauth2.NewClient(ctx, tokenSource), nil
 }
 
@@ -120,9 +130,9 @@ func createJWTAssertion(targetServiceAccount, userEmail, scopes string) (string,
 func getAccessToken(logger *structuredlogger.StructuredLogger, tokenUrl, signedJwt string) (string, error) {
 	data := url.Values{
 		"grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
-		"assertion":  {signedJwt},  // Ensure the signed JWT is being passed here
+		"assertion":  {signedJwt},
 	}
-	
+
 	resp, err := http.PostForm(tokenUrl, data)
 	if err != nil {
 		logger.LogError(context.Background(), "Error posting to token URL", "url", tokenUrl, "error", err)

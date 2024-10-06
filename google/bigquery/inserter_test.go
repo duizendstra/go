@@ -1,4 +1,4 @@
-package bqmodels
+package bqmodels_test
 
 import ()
 

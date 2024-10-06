@@ -67,6 +67,7 @@ func NewStructuredLogger(projectID, component string, r *http.Request, writer io
 		writer:    writer,
 	}
 
+	// Extract trace information if the request is not nil
 	if r != nil {
 		traceID, spanID, traceSampled := extractTraceContext(projectID, r)
 		sl.traceID = traceID
@@ -89,10 +90,12 @@ func extractTraceContext(projectID string, r *http.Request) (string, string, boo
 
 // Log logs a message with the specified level and message.
 func (sl *StructuredLogger) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	// Prepare the attributes for logging, starting with the component
 	attrs := []slog.Attr{
 		slog.String("component", sl.component),
 	}
 
+	// Include trace information if available
 	if sl.traceID != "" {
 		attrs = append(attrs, slog.String("logging.googleapis.com/trace", sl.traceID))
 	}
@@ -105,8 +108,8 @@ func (sl *StructuredLogger) Log(ctx context.Context, level slog.Level, msg strin
 		attrs = append(attrs, slog.Bool("logging.googleapis.com/trace_sampled", true))
 	}
 
+	// Add source location information if the log level is error or higher
 	if level >= slog.LevelError {
-		// Add source location
 		pc, file, line, ok := runtime.Caller(2) // Adjust skip level as needed
 		if ok {
 			fn := runtime.FuncForPC(pc).Name()
@@ -118,7 +121,7 @@ func (sl *StructuredLogger) Log(ctx context.Context, level slog.Level, msg strin
 		}
 	}
 
-	// Process additional args as attributes
+	// Process additional arguments as attributes
 	for i := 0; i < len(args); i += 2 {
 		if i+1 < len(args) {
 			key, ok := args[i].(string)
@@ -234,4 +237,28 @@ func deconstructXCloudTraceContext(s string) (traceID, spanID string, traceSampl
 		traceSampled = matches[3] == "1"
 	}
 	return
+}
+
+func (sl *StructuredLogger) GetTraceID() string {
+	return sl.traceID
+}
+
+func (sl *StructuredLogger) GetSpanID() string {
+	return sl.spanID
+}
+
+func (sl *StructuredLogger) IsTraceSampled() bool {
+	return sl.traceSampled
+}
+
+// GetComponent returns the component of the StructuredLogger.
+func (sl *StructuredLogger) GetComponent() string {
+	return sl.component
+}
+
+// SetTrace sets the trace information for the logger.
+func (sl *StructuredLogger) SetTrace(traceID, spanID string, traceSampled bool) {
+	sl.traceID = traceID
+	sl.spanID = spanID
+	sl.traceSampled = traceSampled
 }

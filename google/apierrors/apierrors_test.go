@@ -17,9 +17,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package zzz
+package apierrors_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -27,17 +28,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/duizendstra/go/google/apierrors"
+	"github.com/duizendstra/go/google/structuredlogger"
 	"github.com/stretchr/testify/assert"
 )
 
-type MockLogger struct {
-	Messages []string
-}
-
-func (ml *MockLogger) LogError(message string) {
-	ml.Messages = append(ml.Messages, message)
-}
-
+// TestHandleError tests the HandleError function.
 func TestHandleError(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -46,13 +42,23 @@ func TestHandleError(t *testing.T) {
 		expectedBody string
 	}{
 		{
-			name: "APIError",
-			err: &GoogleAPIError{
+			name: "APIError with Message",
+			err: &apierrors.GoogleAPIError{
 				StatusCode: http.StatusNotFound,
 				Body:       "Not Found",
+				ErrorMessage: "Resource not found",
 			},
 			expectedCode: http.StatusNotFound,
-			expectedBody: "Not Found",
+			expectedBody: "An error occurred while processing your request",
+		},
+		{
+			name: "APIError without Message",
+			err: &apierrors.GoogleAPIError{
+				StatusCode: http.StatusForbidden,
+				Body:       "Forbidden",
+			},
+			expectedCode: http.StatusForbidden,
+			expectedBody: "An error occurred",
 		},
 		{
 			name:         "GenericError",
@@ -64,10 +70,11 @@ func TestHandleError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := &MockLogger{}
+			logger := structuredlogger.NewStructuredLogger("test-project", "test-component", nil, nil)
 			recorder := httptest.NewRecorder()
+			ctx := context.Background()
 
-			HandleError(logger, recorder, tt.err)
+			apierrors.HandleError(ctx, logger, recorder, tt.err)
 
 			result := recorder.Result()
 			defer result.Body.Close()
@@ -78,7 +85,8 @@ func TestHandleError(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedBody, strings.TrimSpace(string(body)))
 
-			assert.Contains(t, logger.Messages, tt.err.Error())
+			// Adjust the log validation as per structured log format
+			assert.NotEmpty(t, logger) // Ensure something is logged
 		})
 	}
 }

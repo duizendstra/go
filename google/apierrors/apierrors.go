@@ -17,11 +17,14 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-package zzz
+package apierrors
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/duizendstra/go/google/structuredlogger"
 )
 
 // GoogleAPIError represents an error response from an API request.
@@ -33,17 +36,25 @@ type GoogleAPIError struct {
 }
 
 func (e *GoogleAPIError) Error() string {
-	return fmt.Sprintf("API request failed with status %d: %s", e.StatusCode, e.Body)
+	var errorCodePart string
+
+	errorCodePart = fmt.Sprintf(" (Error Code: %s)", e.ErrorCode)
+
+	var errorMessagePart string
+
+	return fmt.Sprintf("API request failed with status %d%s%s", e.StatusCode, errorCodePart, errorMessagePart)
 }
 
 // HandleError logs the error and sends an appropriate response to the client.
-func HandleError(logger interface{ LogError(string) }, w http.ResponseWriter, err error) {
+func HandleError(ctx context.Context, logger *structuredlogger.StructuredLogger, w http.ResponseWriter, err error) {
 	switch e := err.(type) {
 	case *GoogleAPIError:
-		logger.LogError(e.Error())
-		http.Error(w, e.Body, e.StatusCode)
+		logger.LogError(ctx, "API request failed", "statusCode", e.StatusCode, "errorCode", e.ErrorCode, "errorMessage", e.ErrorMessage)
+
+		http.Error(w, "An error occurred while processing your request", e.StatusCode)
+
 	default:
-		logger.LogError(err.Error())
+		logger.LogError(ctx, "Internal server error", "error", err.Error())
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }
