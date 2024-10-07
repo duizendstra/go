@@ -4,13 +4,13 @@ This package provides structured error handling and logging for Google API reque
 
 ## Features
 
-- **Custom Google API Error (`GoogleAPIError`)**: 
+- **Custom Google API Error (`GoogleAPIError`)**:
   A structured error type that captures the HTTP status code, response body, error code, and error message from Google API responses.
   
-- **Error Handling (`HandleError`)**: 
+- **Error Handling (`HandleError`)**:
   A centralized function for handling and logging errors. It differentiates between custom Google API errors and generic Go errors, sending appropriate HTTP responses to the client.
 
-- **Logger Interface**: 
+- **Logger Interface**:
   The package uses a simple logger interface that allows any logging library to be used as long as it implements the `LogError` method.
 
 ## Usage
@@ -27,19 +27,20 @@ The `GoogleAPIError` struct is used to represent an error response from Google A
 Example of how to create and use the `GoogleAPIError`:
 
 ```go
-err := &GoogleAPIError{
+err := &apierrors.GoogleAPIError{
     StatusCode: http.StatusNotFound,
     Body:       "Resource not found",
     ErrorCode:  "404",
     ErrorMessage: "The requested resource could not be found.",
 }
-fmt.Println(err.Error()) // Output: API request failed with status 404: Resource not found
+fmt.Println(err.Error()) // Output: API request failed with status 404 (Error Code: 404)
 ```
 
 ### 2. Error Handling with `HandleError`
 
 The `HandleError` function logs errors and sends the appropriate HTTP response based on the error type. It accepts the following arguments:
 
+- `ctx`: The context for carrying deadlines, cancellation signals, and other request-scoped values.
 - `logger`: An instance of a logger that implements the `LogError` method.
 - `w`: The `http.ResponseWriter` to send the HTTP response.
 - `err`: The error to be handled (either `GoogleAPIError` or any standard Go error).
@@ -49,16 +50,16 @@ Example usage:
 ```go
 func myHandler(w http.ResponseWriter, r *http.Request) {
     // Create a mock logger
-    logger := &MockLogger{}
+    logger := structuredlogger.NewStructuredLogger("my-project", "my-component", nil, nil)
 
     // Simulate an error
-    err := &GoogleAPIError{
+    err := &apierrors.GoogleAPIError{
         StatusCode: http.StatusInternalServerError,
         Body:       "Internal server error",
     }
 
     // Handle the error
-    HandleError(logger, w, err)
+    apierrors.HandleError(r.Context(), logger, w, err)
 }
 ```
 
@@ -68,7 +69,7 @@ The logger used in `HandleError` must implement the following interface:
 
 ```go
 type Logger interface {
-    LogError(message string)
+    LogError(ctx context.Context, message string, keyvals ...interface{})
 }
 ```
 
@@ -81,7 +82,7 @@ type MockLogger struct {
     Messages []string
 }
 
-func (ml *MockLogger) LogError(message string) {
+func (ml *MockLogger) LogError(ctx context.Context, message string, keyvals ...interface{}) {
     ml.Messages = append(ml.Messages, message)
 }
 ```
@@ -110,17 +111,18 @@ The tests cover:
 func TestHandleError(t *testing.T) {
     logger := &MockLogger{}
     recorder := httptest.NewRecorder()
+    ctx := context.Background()
 
-    err := &GoogleAPIError{
+    err := &apierrors.GoogleAPIError{
         StatusCode: http.StatusNotFound,
         Body:       "Not Found",
     }
 
-    HandleError(logger, recorder, err)
+    apierrors.HandleError(ctx, logger, recorder, err)
 
     result := recorder.Result()
     assert.Equal(t, http.StatusNotFound, result.StatusCode)
-    assert.Contains(t, logger.Messages, "API request failed with status 404: Not Found")
+    assert.Contains(t, logger.Messages, "API request failed with status 404 (Error Code: 404)")
 }
 ```
 
@@ -129,19 +131,15 @@ func TestHandleError(t *testing.T) {
 Install the package using `go get`:
 
 ```bash
-go get github.com/duizendstra/go/google/errors
+go get github.com/duizendstra/go/google/apierrors
 ```
 
 Then import the package in your project:
 
 ```go
-import "github.com/duizendstra/go/google/errors"
+import "github.com/duizendstra/go/google/apierrors"
 ```
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
-
----
-
-For any issues or questions, feel free to contact [Jasper Duizendstra](mailto:jasper@duizendstra.com).

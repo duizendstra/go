@@ -44,8 +44,8 @@ func TestHandleError(t *testing.T) {
 		{
 			name: "APIError with Message",
 			err: &apierrors.GoogleAPIError{
-				StatusCode: http.StatusNotFound,
-				Body:       "Not Found",
+				StatusCode:   http.StatusNotFound,
+				Body:         "Not Found",
 				ErrorMessage: "Resource not found",
 			},
 			expectedCode: http.StatusNotFound,
@@ -58,7 +58,7 @@ func TestHandleError(t *testing.T) {
 				Body:       "Forbidden",
 			},
 			expectedCode: http.StatusForbidden,
-			expectedBody: "An error occurred",
+			expectedBody: "An error occurred while processing your request",
 		},
 		{
 			name:         "GenericError",
