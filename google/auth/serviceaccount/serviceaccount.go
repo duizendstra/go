@@ -65,9 +65,17 @@ type JWTClaims struct {
 
 // GenerateGoogleHTTPClient creates an authenticated HTTP client for GCP services.
 func GenerateGoogleHTTPClient(ctx context.Context, logger *structuredlogger.StructuredLogger, iamClient IAMServiceClient, tokenCache *TokenCache, targetServiceAccount, userEmail, scopes string, tokenURL ...string) (*http.Client, error) {
-	// Check the token cache first
-	if cachedToken, found := tokenCache.GetToken(userEmail, strings.Split(scopes, ",")); found {
-		return oauth2.NewClient(ctx, oauth2.StaticTokenSource(cachedToken)), nil
+	var token *oauth2.Token
+	var found bool
+
+	// Handle missing token cache case or attempt to get a token from the cache
+	if tokenCache != nil {
+		token, found = tokenCache.GetToken(userEmail, strings.Split(scopes, ","))
+		if found {
+			return oauth2.NewClient(ctx, oauth2.StaticTokenSource(token)), nil
+		}
+	} else {
+		logger.LogError(ctx, "Token cache is nil, proceeding without caching tokens")
 	}
 
 	jwtAssertion, err := createJWTAssertion(targetServiceAccount, userEmail, scopes)
@@ -94,9 +102,11 @@ func GenerateGoogleHTTPClient(ctx context.Context, logger *structuredlogger.Stru
 		return nil, err
 	}
 
-	token := &oauth2.Token{AccessToken: accessToken}
-	// Cache the new token
-	tokenCache.SetToken(userEmail, strings.Split(scopes, ","), token)
+	token = &oauth2.Token{AccessToken: accessToken}
+	// Cache the new token if token cache is available
+	if tokenCache != nil {
+		tokenCache.SetToken(userEmail, strings.Split(scopes, ","), token)
+	}
 
 	tokenSource := oauth2.StaticTokenSource(token)
 	return oauth2.NewClient(ctx, tokenSource), nil
